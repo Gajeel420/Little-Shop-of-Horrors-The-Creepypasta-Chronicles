@@ -1,0 +1,127 @@
+{
+  "_comment": "Feed Me: Descent into Madness — Background Workflow",
+  "_description": "SDXL 1.0 + Refiner pipeline for 1920x1080 parallax-ready backgrounds.",
+  "_how_to_use": "Call generate_backgrounds.py — it injects POSITIVE_PROMPT, NEGATIVE_PROMPT, and seed.",
+
+  "1_checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "2_vae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "sdxl_vae.safetensors"
+    }
+  },
+  "3_positive_clip": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "POSITIVE_PROMPT",
+      "clip": ["1_checkpoint", 1]
+    }
+  },
+  "4_negative_clip": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "NEGATIVE_PROMPT",
+      "clip": ["1_checkpoint", 1]
+    }
+  },
+  "5_empty_latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1920,
+      "height": 1088,
+      "batch_size": 1
+    }
+  },
+  "6_ksampler_base": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model":           ["1_checkpoint", 0],
+      "positive":        ["3_positive_clip", 0],
+      "negative":        ["4_negative_clip", 0],
+      "latent_image":    ["5_empty_latent", 0],
+      "seed":            42,
+      "steps":           30,
+      "cfg":             7.5,
+      "sampler_name":    "dpmpp_2m",
+      "scheduler":       "karras",
+      "denoise":         1.0
+    }
+  },
+  "7_refiner_checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_refiner_1.0.safetensors"
+    }
+  },
+  "8_refiner_pos": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "POSITIVE_PROMPT",
+      "clip": ["7_refiner_checkpoint", 1]
+    }
+  },
+  "9_refiner_neg": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "NEGATIVE_PROMPT",
+      "clip": ["7_refiner_checkpoint", 1]
+    }
+  },
+  "10_ksampler_refiner": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model":           ["7_refiner_checkpoint", 0],
+      "positive":        ["8_refiner_pos", 0],
+      "negative":        ["9_refiner_neg", 0],
+      "latent_image":    ["6_ksampler_base", 0],
+      "seed":            42,
+      "steps":           10,
+      "cfg":             4.0,
+      "sampler_name":    "euler",
+      "scheduler":       "normal",
+      "denoise":         0.2
+    }
+  },
+  "11_vae_decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["10_ksampler_refiner", 0],
+      "vae":     ["2_vae", 0]
+    }
+  },
+  "12_upscale": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": ["13_upscale_loader", 0],
+      "image":         ["11_vae_decode", 0]
+    }
+  },
+  "13_upscale_loader": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "4x-UltraSharp.pth"
+    }
+  },
+  "14_resize_output": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image":         ["12_upscale", 0],
+      "width":         3840,
+      "height":        2160,
+      "upscale_method": "lanczos",
+      "crop":           "disabled"
+    }
+  },
+  "15_save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images":        ["14_resize_output", 0],
+      "filename_prefix": "bg"
+    }
+  }
+}

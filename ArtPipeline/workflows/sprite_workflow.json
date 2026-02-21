@@ -1,0 +1,130 @@
+{
+  "_comment": "Feed Me: Descent into Madness — Character Sprite Sheet Workflow",
+  "_description": [
+    "Generates a single sprite sheet PNG containing all animation frames",
+    "for one character on a transparent background using SDXL + ControlNet OpenPose.",
+    "The sheet is arranged in a GRID: GRID_COLS columns × GRID_ROWS rows.",
+    "generate_sprites.py injects all UPPER_CASE placeholders.",
+    "",
+    "ControlNet OpenPose input is a pre-drawn skeleton image placed in",
+    "ArtPipeline/pose_references/<character_id>_<animation>.png",
+    "If no pose reference exists, the ControlNet node is bypassed."
+  ],
+
+  "1_checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "sd_xl_base_1.0.safetensors" }
+  },
+  "2_vae": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "sdxl_vae.safetensors" }
+  },
+
+  "3_positive": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "POSITIVE_PROMPT",
+      "clip": ["1_checkpoint", 1]
+    }
+  },
+  "4_negative": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "NEGATIVE_PROMPT",
+      "clip": ["1_checkpoint", 1]
+    }
+  },
+
+  "5_latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width":      FRAME_WIDTH,
+      "height":     FRAME_HEIGHT,
+      "batch_size": FRAME_COUNT
+    }
+  },
+
+  "6_controlnet_loader": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "control-lora-openposeXL2-rank256.safetensors"
+    }
+  },
+  "7_pose_image": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "POSE_IMAGE_PATH" }
+  },
+  "8_controlnet_apply": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive":     ["3_positive", 0],
+      "negative":     ["4_negative", 0],
+      "control_net":  ["6_controlnet_loader", 0],
+      "image":        ["7_pose_image", 0],
+      "strength":     0.65,
+      "start_percent": 0.0,
+      "end_percent":   0.75
+    }
+  },
+
+  "9_ksampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model":        ["1_checkpoint", 0],
+      "positive":     ["8_controlnet_apply", 0],
+      "negative":     ["8_controlnet_apply", 1],
+      "latent_image": ["5_latent", 0],
+      "seed":         42,
+      "steps":        35,
+      "cfg":          8.0,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler":    "karras",
+      "denoise":      1.0
+    }
+  },
+  "10_vae_decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["9_ksampler", 0],
+      "vae":     ["2_vae", 0]
+    }
+  },
+
+  "11_make_grid": {
+    "class_type": "ImageBatch",
+    "_note": "Batched images from node 10 are arranged into a sprite sheet grid by generate_sprites.py post-process step using Pillow — ComfyUI outputs individual frames.",
+    "inputs": {
+      "image1": ["10_vae_decode", 0]
+    }
+  },
+
+  "12_upscale_model": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": { "model_name": "4x-UltraSharp.pth" }
+  },
+  "13_upscale": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": ["12_upscale_model", 0],
+      "image":         ["10_vae_decode", 0]
+    }
+  },
+  "14_resize": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image":          ["13_upscale", 0],
+      "width":          OUTPUT_FRAME_WIDTH,
+      "height":         OUTPUT_FRAME_HEIGHT,
+      "upscale_method": "lanczos",
+      "crop":           "center"
+    }
+  },
+
+  "15_save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images":           ["14_resize", 0],
+      "filename_prefix":  "sprite_frame"
+    }
+  }
+}

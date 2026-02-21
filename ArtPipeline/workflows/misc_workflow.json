@@ -1,0 +1,77 @@
+{
+  "_comment": "Feed Me: Descent into Madness — Story/Misc Items Workflow",
+  "_description": [
+    "Single-image generation for non-sprite assets:",
+    "  - Cutscene panels / story boards",
+    "  - Memory flashback images",
+    "  - Collectible portrait images (Lore items, memory fragments)",
+    "  - UI art (title card, menu illustrations, HUD decoration)",
+    "  - VHS lost-episode overlay frames",
+    "All items generated at 512x512 then upscaled to target size."
+  ],
+
+  "1_checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "sd_xl_base_1.0.safetensors" }
+  },
+  "2_vae": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "sdxl_vae.safetensors" }
+  },
+  "3_positive": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "POSITIVE_PROMPT", "clip": ["1_checkpoint", 1] }
+  },
+  "4_negative": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "NEGATIVE_PROMPT", "clip": ["1_checkpoint", 1] }
+  },
+  "5_latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 512, "height": 512, "batch_size": 1 }
+  },
+  "6_ksampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model":        ["1_checkpoint", 0],
+      "positive":     ["3_positive", 0],
+      "negative":     ["4_negative", 0],
+      "latent_image": ["5_latent", 0],
+      "seed":         42,
+      "steps":        30,
+      "cfg":          7.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler":    "karras",
+      "denoise":      1.0
+    }
+  },
+  "7_vae_decode": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["6_ksampler", 0], "vae": ["2_vae", 0] }
+  },
+  "8_upscale_loader": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": { "model_name": "4x-UltraSharp.pth" }
+  },
+  "9_upscale": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": ["8_upscale_loader", 0],
+      "image":         ["7_vae_decode", 0]
+    }
+  },
+  "10_resize": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image":          ["9_upscale", 0],
+      "width":          TARGET_WIDTH,
+      "height":         TARGET_HEIGHT,
+      "upscale_method": "lanczos",
+      "crop":           "center"
+    }
+  },
+  "11_save": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["10_resize", 0], "filename_prefix": "misc" }
+  }
+}
