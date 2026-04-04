@@ -1,0 +1,70 @@
+# ── Unity Generated ────────────────────────────────────────────────────────────
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Uu]serSettings/
+
+# Asset meta files for ignored top-level folders
+[Ll]ibrary.meta
+[Tt]emp.meta
+
+# ── Unity Crash / Sysinfo ──────────────────────────────────────────────────────
+sysinfo.txt
+Crashes/
+
+# ── Visual Studio ──────────────────────────────────────────────────────────────
+.vs/
+*.sln
+*.csproj
+*.unityproj
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+ExportedObj/
+
+# ── Rider / JetBrains ─────────────────────────────────────────────────────────
+.idea/
+
+# ── VSCode ────────────────────────────────────────────────────────────────────
+.vscode/
+
+# ── OS Generated ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Build Output ──────────────────────────────────────────────────────────────
+Builds/
+
+# ── Package Manager lock (optional: remove this line for reproducible CI pins) ─
+# Packages/packages-lock.json
+
+# ── DOTween generated settings ────────────────────────────────────────────────
+# Assets/Resources/DOTweenSettings.unity   ← commit this after first DOTween setup
+
+# ── Test Results ──────────────────────────────────────────────────────────────
+TestResults/
+
+# ── Secrets / Local Overrides ─────────────────────────────────────────────────
+.env
+*.env
+*.ulf
+
+# ── Node (WebGL post-processors) ──────────────────────────────────────────────
+node_modules/
