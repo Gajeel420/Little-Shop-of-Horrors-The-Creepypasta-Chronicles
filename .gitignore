@@ -55,9 +55,6 @@ Builds/
 # ── Package Manager lock (optional: remove this line for reproducible CI pins) ─
 # Packages/packages-lock.json
 
-# ── DOTween generated settings ────────────────────────────────────────────────
-# Assets/Resources/DOTweenSettings.unity   ← commit this after first DOTween setup
-
 # ── Test Results ──────────────────────────────────────────────────────────────
 TestResults/
 
@@ -68,3 +65,14 @@ TestResults/
 
 # ── Node (WebGL post-processors) ──────────────────────────────────────────────
 node_modules/
+
+# ── Python RPG (src/) ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+lsoh_save.json
+.venv/
+venv/
+*.swp
+*.swo
