@@ -37,9 +37,10 @@ BBOX_W, BBOX_H = 248, 175
 BBOX_BORDER    = 3
 
 # ── Soul / Player ─────────────────────────────────────────────────────────────
-SOUL_SPEED = 180   # pixels per second
-SOUL_R     = 6     # collision radius
-INV_TIME   = 1.5   # invincibility seconds after a hit
+SOUL_SPEED  = 180        # pixels per second
+SOUL_R      = 6          # collision radius
+SOUL_COLOR  = (255, 220, 0)   # same as YELLOW; explicit alias used in UI
+INV_TIME    = 1.5        # invincibility seconds after a hit
 
 # ── Base Stats ────────────────────────────────────────────────────────────────
 BASE_HP  = 20

@@ -179,25 +179,30 @@ def draw_fight_slider(surf, t: float, box_x=150, box_y=400,
                       box_w=340, box_h=18):
     """
     t = 0.0..1.0 (oscillating cursor position).
-    Returns 'power zone' rect for hit detection.
+    Returns (sweet_rect, t_lo, t_hi) where t_lo/t_hi are
+    normalised thresholds for hit detection (cursor in [0,1]).
     """
     # Background track
     track = pygame.Rect(box_x, box_y, box_w, box_h)
     pygame.draw.rect(surf, DARK_GRAY, track)
     pygame.draw.rect(surf, WHITE, track, 1)
 
-    # Power zone (sweet spot)
+    # Power zone (sweet spot, centred)
     sweet_w = int(box_w * 0.18)
     sweet_x = box_x + (box_w - sweet_w) // 2
     sweet   = pygame.Rect(sweet_x, box_y, sweet_w, box_h)
     pygame.draw.rect(surf, YELLOW, sweet)
 
-    # Cursor
+    # Cursor bar
     cx = box_x + int(t * box_w)
     pygame.draw.rect(surf, WHITE, pygame.Rect(cx - 2, box_y - 2, 4, box_h + 4))
 
     draw_text(surf, "* Press Z / ENTER to strike!", (box_x, box_y - 18), WHITE, size="sm")
-    return sweet
+
+    # Normalised thresholds relative to slider width (not screen width)
+    t_lo = (sweet_x - box_x) / box_w
+    t_hi = (sweet_x + sweet_w - box_x) / box_w
+    return sweet, t_lo, t_hi
 
 
 # ── HUD for overworld ─────────────────────────────────────────────────────────

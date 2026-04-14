@@ -202,8 +202,7 @@ class OverworldScene:
         surf.fill(BLACK)
         apply_corruption_tint(surf, self.gs.corruption_stage())
 
-        self._draw_map(surf)
-        self._player.draw(surf, font("sm"))
+        self._draw_map(surf)   # player is drawn inside _draw_map with camera offset
 
         # Dialogue box
         if not self.dlg.is_empty():

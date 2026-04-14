@@ -12,7 +12,7 @@ State machine:
   BS_SPARE    → enemy spared animation → return to overworld
   BS_VICTORY  → enemy defeated animation → return to overworld
   BS_DEFEAT   → GAME OVER screen
-  BS_LEVELUP  → short level-up display → BS_MENU
+  BS_LEVELUP  → short level-up display → return to overworld
 """
 
 import pygame
@@ -72,7 +72,10 @@ class BattleScene:
         self.slider_t      = 0.0
         self.slider_dir    = 1
         self.slider_active = False
-        self._slider_sweet = None   # set each frame
+        self._slider_sweet = None   # (rect, t_lo, t_hi) set each frame
+
+        # Turn-flow flag: True after player acts, triggers enemy dodge phase
+        self._player_just_acted = False
 
         # Outcome
         self._next_scene = None   # "overworld", "gameover"
@@ -169,7 +172,7 @@ class BattleScene:
         # ── Level up ─────────────────────────────────────────
         if self.state == BS_LEVELUP:
             if confirm:
-                self.state = BS_MENU
+                self._next_scene = "overworld"  # enemy is dead; return to world
 
     def update(self, dt):
         self.shake.update(dt)
@@ -230,6 +233,7 @@ class BattleScene:
                                          int(tbar.width * frac), tbar.height))
 
         elif self.state == BS_FIGHT:
+            # draw_fight_slider returns (rect, t_lo, t_hi) for hit-detection
             self._slider_sweet = draw_fight_slider(surf, self.slider_t)
 
         elif self.state in (BS_TALKING, BS_VICTORY, BS_SPARE):
@@ -294,9 +298,12 @@ class BattleScene:
     # ── FIGHT resolution ──────────────────────────────────────────────────────
 
     def _resolve_fight(self):
-        sweet = self._slider_sweet
-        hit_sweet = (sweet is not None and
-                     sweet.left / SCREEN_W <= self.slider_t <= sweet.right / SCREEN_W)
+        # _slider_sweet is (rect, t_lo, t_hi) where t_lo/hi are normalised to slider width
+        result = self._slider_sweet
+        hit_sweet = False
+        if result is not None:
+            _sweet_rect, t_lo, t_hi = result
+            hit_sweet = t_lo <= self.slider_t <= t_hi
 
         base_atk  = self.gs.atk
         crit_roll = random.random() < 0.10 + (0.05 * self.gs.lv)
@@ -428,9 +435,12 @@ class BattleScene:
 
     def _end_dodge(self):
         self.bullets = []
+        # _player_just_acted is already False here; _after_talking will → BS_MENU
         if self.dodge_dmg_dealt == 0:
             self.dlg.push("You took no damage!")
-        self.state = BS_TALKING
+            self.state = BS_TALKING   # show message, then → BS_MENU
+        else:
+            self.state = BS_MENU      # damage already conveyed by shake; go straight to menu
 
     def _trigger_defeat(self):
         self.state   = BS_DEFEAT
@@ -441,12 +451,20 @@ class BattleScene:
     # ── Post-action routing ───────────────────────────────────────────────────
 
     def _post_player_action(self):
-        """After player acts: check if enemy is dead, else go to dodge."""
+        """After player acts: if enemy alive, flag that dodge phase should follow."""
         if not self.enemy.alive:
             self._trigger_victory()
+        else:
+            self._player_just_acted = True   # enemy will attack after dialogue
 
     def _after_talking(self):
-        """Called when dialogue finishes."""
+        """Called when dialogue is fully advanced.
+
+        Flow:
+          intro done              → BS_MENU  (player's turn first, like Undertale)
+          player acted            → BS_DODGE (enemy's turn)
+          dodge ended (no dmg)    → BS_MENU
+        """
         if self._outcome == "spare":
             self._next_scene = "overworld"
             return
@@ -456,9 +474,11 @@ class BattleScene:
             return
 
         if self.state == BS_TALKING:
-            # Check if we just finished the intro or an action
-            if self.gs.hp > 0 and self.enemy.alive:
+            if self._player_just_acted and self.gs.hp > 0 and self.enemy.alive:
+                self._player_just_acted = False
                 self._start_dodge()
+            else:
+                self.state = BS_MENU   # intro done or post-dodge "no damage" msg
 
     def _trigger_victory(self):
         self.gs.add_kill()
