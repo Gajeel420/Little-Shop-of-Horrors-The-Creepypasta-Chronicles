@@ -465,6 +465,8 @@ class BattleScene:
           player acted            → BS_DODGE (enemy's turn)
           dodge ended (no dmg)    → BS_MENU
         """
+        self.dlg.clear()   # acknowledged – prevent stale text blocking new pushes
+
         if self._outcome == "spare":
             self._next_scene = "overworld"
             return

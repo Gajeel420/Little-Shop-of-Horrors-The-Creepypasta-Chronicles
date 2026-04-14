@@ -35,7 +35,10 @@ class DialogueBox:
             lines = [lines]
         self._queue.extend(lines)
         self._glitch = glitch
-        if not self._current:
+        # Start immediately if nothing is showing, or the current line
+        # was fully read (_done).  This prevents stale acknowledged text
+        # from blocking new pushes.
+        if not self._current or self._done:
             self._next()
 
     def advance(self):
